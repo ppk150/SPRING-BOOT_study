@@ -2,14 +2,12 @@ package com.codestates.order.controller;
 
 import com.codestates.dto.MultiResponseDto;
 import com.codestates.dto.SingleResponseDto;
-import com.codestates.member.entity.Member;
 import com.codestates.member.service.MemberService;
 import com.codestates.order.dto.OrderPatchDto;
 import com.codestates.order.dto.OrderPostDto;
 import com.codestates.order.entity.Order;
 import com.codestates.order.mapper.OrderMapper;
 import com.codestates.order.service.OrderService;
-import com.codestates.stamp.Stamp;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,25 +38,9 @@ public class OrderController {
     public ResponseEntity postOrder(@Valid @RequestBody OrderPostDto orderPostDto) {
         Order order = orderService.createOrder(mapper.orderPostDtoToOrder(orderPostDto));
 
-        updateStamp(order);
-
         return new ResponseEntity<>(
                 new SingleResponseDto<>(mapper.orderToOrderResponseDto(order)),
                 HttpStatus.CREATED);
-    }
-
-    private void updateStamp(Order order) {
-        Member member = memberService.findMember(order.getMember().getMemberId());
-        int stampCount =
-                order.getOrderCoffees().stream()
-                        .map(orderCoffee -> orderCoffee.getQuantity())
-                        .mapToInt(quantity -> quantity)
-                        .sum();
-        Stamp stamp = member.getStamp();
-        stamp.setStampCount(stamp.getStampCount() + stampCount);
-        member.setStamp(stamp);
-
-        memberService.updateMember(member);
     }
 
     @PatchMapping("/{order-id}")

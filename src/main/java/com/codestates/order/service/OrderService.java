@@ -3,19 +3,18 @@ package com.codestates.order.service;
 import com.codestates.coffee.service.CoffeeService;
 import com.codestates.exception.BusinessLogicException;
 import com.codestates.exception.ExceptionCode;
+import com.codestates.helper.StampCalculator;
 import com.codestates.member.entity.Member;
 import com.codestates.member.service.MemberService;
 import com.codestates.order.entity.Order;
 import com.codestates.order.repository.OrderRepository;
 import com.codestates.stamp.Stamp;
-import org.aspectj.weaver.ast.Or;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Transactional
@@ -37,38 +36,8 @@ public class OrderService {
         Order savedOrder = saveOrder(order);
         updateStamp(savedOrder);
 
-        throw new RuntimeException("rollback test");
-
-
-//        return orderRepository.save(order);
+        return savedOrder;
     }
-
-    private void updateStamp(Order order){
-        Member member = memberService.findMember(order.getMember().getMemberId());
-        int stampCount = calculateStampCount(order);
-
-        Stamp stamp = member.getStamp();
-
-        stamp.setStampCount(stamp.getStampCount()+stampCount);
-
-        member.setStamp(stamp);
-        memberService.updateMember(member);
-    }
-
-    private int calculateStampCount(Order order){
-
-        return order.getOrderCoffees().stream()
-                .map(orderCoffee -> orderCoffee.getQuantity())
-                .mapToInt(quantity -> quantity )
-                .sum();
-
-    }
-
-    private Order saveOrder(Order order){
-        return orderRepository.save(order);
-    }
-
-
 
     public Order updateOrder(Order order) {
         Order findOrder = findVerifiedOrder(order.getOrderId());
@@ -116,4 +85,29 @@ public class OrderService {
                 .forEach(orderCoffee -> coffeeService.
                         findVerifiedCoffee(orderCoffee.getCoffee().getCoffeeId()));
     }
+
+    private void updateStamp(Order order) {
+        Member member = memberService.findMember(order.getMember().getMemberId());
+        int earnedStampCount = StampCalculator.calculateEarnedStampCount(order);
+
+        Stamp stamp = member.getStamp();
+        stamp.setStampCount(
+                StampCalculator.calculateStampCount(stamp.getStampCount(),
+                                                            earnedStampCount));
+        member.setStamp(stamp);
+
+        memberService.updateMember(member);
+    }
+
+    private int calculateStampCount(Order order) {
+        return order.getOrderCoffees().stream()
+                .map(orderCoffee -> orderCoffee.getQuantity())
+                .mapToInt(quantity -> quantity)
+                .sum();
+    }
+
+    private Order saveOrder(Order order) {
+        return orderRepository.save(order);
+    }
+
 }

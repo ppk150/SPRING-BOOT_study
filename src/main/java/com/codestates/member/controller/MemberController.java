@@ -2,8 +2,7 @@ package com.codestates.member.controller;
 
 import com.codestates.dto.MultiResponseDto;
 import com.codestates.dto.SingleResponseDto;
-import com.codestates.member.dto.MemberPatchDto;
-import com.codestates.member.dto.MemberPostDto;
+import com.codestates.member.dto.MemberDto;
 import com.codestates.member.entity.Member;
 import com.codestates.member.mapper.MemberMapper;
 import com.codestates.member.service.MemberService;
@@ -39,28 +38,28 @@ public class MemberController {
     }
 
     @PostMapping
-    public ResponseEntity postMember(@Valid @RequestBody MemberPostDto memberDto) {
-        Member member = mapper.memberPostDtoToMember(memberDto);
+    public ResponseEntity postMember(@Valid @RequestBody MemberDto.Post requestBody) {
+        Member member = mapper.memberPostToMember(requestBody);
         member.setStamp(new Stamp()); // homework solution 추가
 
         Member createdMember = memberService.createMember(member);
 
         return new ResponseEntity<>(
-                new SingleResponseDto<>(mapper.memberToMemberResponseDto(createdMember)),
+                new SingleResponseDto<>(mapper.memberToMemberResponse(createdMember)),
                 HttpStatus.CREATED);
     }
 
     @PatchMapping("/{member-id}")
     public ResponseEntity patchMember(
             @PathVariable("member-id") @Positive long memberId,
-            @Valid @RequestBody MemberPatchDto memberPatchDto) {
-        memberPatchDto.setMemberId(memberId);
+            @Valid @RequestBody MemberDto.Patch requestBody) {
+        requestBody.setMemberId(memberId);
 
         Member member =
-                memberService.updateMember(mapper.memberPatchDtoToMember(memberPatchDto));
+                memberService.updateMember(mapper.memberPatchToMember(requestBody));
 
         return new ResponseEntity<>(
-                new SingleResponseDto<>(mapper.memberToMemberResponseDto(member)),
+                new SingleResponseDto<>(mapper.memberToMemberResponse(member)),
                 HttpStatus.OK);
     }
 
@@ -69,7 +68,7 @@ public class MemberController {
             @PathVariable("member-id") @Positive long memberId) {
         Member member = memberService.findMember(memberId);
         return new ResponseEntity<>(
-                new SingleResponseDto<>(mapper.memberToMemberResponseDto(member))
+                new SingleResponseDto<>(mapper.memberToMemberResponse(member))
                 , HttpStatus.OK);
     }
 
@@ -79,7 +78,7 @@ public class MemberController {
         Page<Member> pageMembers = memberService.findMembers(page - 1, size);
         List<Member> members = pageMembers.getContent();
         return new ResponseEntity<>(
-                new MultiResponseDto<>(mapper.membersToMemberResponseDtos(members),
+                new MultiResponseDto<>(mapper.membersToMemberResponses(members),
                         pageMembers),
                 HttpStatus.OK);
     }

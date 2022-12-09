@@ -2,12 +2,15 @@ package com.codestates.member.service;
 
 import com.codestates.exception.BusinessLogicException;
 import com.codestates.exception.ExceptionCode;
+import com.codestates.helper.event.MemberRegistrationApplicationEvent;
 import com.codestates.member.entity.Member;
 import com.codestates.member.repository.MemberRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,30 +20,31 @@ import java.util.Optional;
  *  - 메서드 구현
  *  - DI 적용
  *  - Spring Data JPA 적용
+ *  - 트랜잭션 적용
  */
-@Service
 @Transactional
+@Service
 public class MemberService {
     private final MemberRepository memberRepository;
+    private final ApplicationEventPublisher publisher;
 
-    public MemberService(MemberRepository memberRepository) {
+    public MemberService(MemberRepository memberRepository,
+                         ApplicationEventPublisher publisher) {
         this.memberRepository = memberRepository;
+        this.publisher = publisher;
+
     }
 
     public Member createMember(Member member) {
-        // 이미 등록된 이메일인지 확인
         verifyExistsEmail(member.getEmail());
+        Member savedMember = memberRepository.save(member);
 
-        Member resultMember = memberRepository.save(member);
-
-//        if(true){
-//            throw new RuntimeException("Rollback test");
-//        }
-
-        return resultMember;
+        // 추가된 부분
+        publisher.publishEvent(new MemberRegistrationApplicationEvent(this, savedMember));
+        return savedMember;
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public Member updateMember(Member member) {
         Member findMember = findVerifiedMember(member.getMemberId());
 
@@ -70,6 +74,7 @@ public class MemberService {
         memberRepository.delete(findMember);
     }
 
+    @Transactional(readOnly = true)
     public Member findVerifiedMember(long memberId) {
         Optional<Member> optionalMember =
                 memberRepository.findById(memberId);
