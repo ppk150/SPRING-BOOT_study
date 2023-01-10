@@ -29,6 +29,7 @@ public class Member extends Auditable {
     @Column(length = 13, nullable = false, unique = true)
     private String phone;
 
+    // 추가된 부분
     @Enumerated(value = EnumType.STRING)
     @Column(length = 20, nullable = false)
     private MemberStatus memberStatus = MemberStatus.MEMBER_ACTIVE;
@@ -36,8 +37,7 @@ public class Member extends Auditable {
     @OneToMany(mappedBy = "member")
     private List<Order> orders = new ArrayList<>();
 
-    // 수정된 부분
-    @OneToOne(mappedBy = "member", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    @OneToOne(mappedBy = "member", cascade = CascadeType.PERSIST)
     private Stamp stamp;
 
     public Member(String email) {

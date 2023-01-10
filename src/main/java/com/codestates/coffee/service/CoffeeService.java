@@ -48,7 +48,7 @@ public class CoffeeService {
     }
 
     public Coffee findCoffee(long coffeeId) {
-         return findVerifiedCoffeeByQuery(coffeeId);
+        return findVerifiedCoffeeByQuery(coffeeId);
     }
 
     public Page<Coffee> findCoffees(int page, int size) {
